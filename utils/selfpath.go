@@ -13,9 +13,9 @@ func init() {
 }
 
 // BuildkiteAgentPath returns a file path to buildkite-agent. If an absolute
-// path cannot be found, it defaults to "buildkite-agent" assuming it is in
-// $PATH. Self-executing with this path can fail if someone is playing games
-// (e.g. unlinking the binary after starting it).
+// path cannot be found, it defaults to "buildkite-agent" on the assumption it
+// is in $PATH. Self-executing with this path can still fail if someone is
+// playing games (e.g. unlinking the binary after starting it).
 func BuildkiteAgentPath() string {
 	return pathToSelf
 }

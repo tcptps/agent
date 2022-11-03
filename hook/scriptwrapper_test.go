@@ -263,7 +263,7 @@ func newTestScriptWrapper(t *testing.T, script []string) *ScriptWrapper {
 
 	wrapper, err := NewScriptWrapper(
 		// The test binary is not a substitute for the whole agent.
-		WithBuildkiteAgentPath("buildkite-agent"),
+		withBuildkiteAgentPath("buildkite-agent"),
 		WithHookPath(hookFile.Name()),
 	)
 	assert.NoError(t, err)

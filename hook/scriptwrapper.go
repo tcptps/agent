@@ -101,7 +101,7 @@ type ScriptWrapper struct {
 	afterEnvFile       *os.File
 }
 
-func WithBuildkiteAgentPath(path string) scriptWrapperOpt {
+func withBuildkiteAgentPath(path string) scriptWrapperOpt {
 	return func(wrap *ScriptWrapper) {
 		wrap.buildkiteAgentPath = path
 	}
