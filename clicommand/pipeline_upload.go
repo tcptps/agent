@@ -3,8 +3,10 @@ package clicommand
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
@@ -316,7 +318,8 @@ var PipelineUploadCommand = cli.Command{
 				l.Warn("%s (%s)", err, r)
 
 				// 422 responses will always fail no need to retry
-				if apierr, ok := err.(*api.ErrorResponse); ok && apierr.Response.StatusCode == 422 {
+				apierr := &api.ErrorResponse{}
+				if errors.As(err, &apierr) && apierr.Response.StatusCode == http.StatusUnprocessableEntity {
 					l.Error("Unrecoverable error, skipping retries")
 					r.Break()
 				}
