@@ -3,7 +3,7 @@ set -euo pipefail
 
 
 echo "--- :package: Downloading bk binary"
-go install github.com/buildkite/cli/v2/cmd/bk@main
+go install github.com/buildkite/cli/v2/cmd/bk@pdp-478-teach-bk-cli-how-to-receive-async
 
 echo "--- :package: Downloading built binary"
 rm -rf pkg/*
