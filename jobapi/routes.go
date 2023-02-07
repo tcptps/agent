@@ -7,6 +7,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+var protectedEnv map[string]struct{}
+
+func init() {
+	protectedEnv = make(map[string]struct{}, len(agent.ProtectedEnv))
+	for _, p := range agent.ProtectedEnv {
+		protectedEnv[p] = struct{}{}
+	}
+}
+
 func (s *Server) router() chi.Router {
 	r := chi.NewRouter()
 	r.Use(
