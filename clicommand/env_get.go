@@ -51,7 +51,7 @@ var EnvGetCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		// TODO: implement
-		_, err := bootstrap.ConnectToSocket()
+		_, _, err := bootstrap.ConnectToSocket()
 		if err != nil {
 			fmt.Fprintf(c.App.ErrWriter, "Could not connect to control socket: %v\nThis command can only be used from hooks or plugins running under the job runner.\n", err)
 			os.Exit(1)

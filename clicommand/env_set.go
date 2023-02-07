@@ -91,20 +91,20 @@ func envSetAction(c *cli.Context) error {
 			line := 1
 			for sc.Scan() {
 				if err := parse(sc.Text()); err != nil {
-					fmt.Fprintf(c.App.ErrWriter, "Couldn't parse input line %d: %v", line, err)
+					fmt.Fprintf(c.App.ErrWriter, "Couldn't parse input line %d: %v\n", line, err)
 					os.Exit(1)
 				}
 				line++
 			}
 			if err := sc.Err(); err != nil {
-				fmt.Fprintf(c.App.ErrWriter, "Couldn't scan the input buffer: %v", err)
+				fmt.Fprintf(c.App.ErrWriter, "Couldn't scan the input buffer: %v\n", err)
 				os.Exit(1)
 			}
 			continue
 		}
 		// Parse args directly
 		if err := parse(arg); err != nil {
-			fmt.Fprintf(c.App.ErrWriter, "Couldn't parse the command-line argument %q: %v", arg, err)
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't parse the command-line argument %q: %v\n", arg, err)
 			os.Exit(1)
 		}
 	}
@@ -112,14 +112,14 @@ func envSetAction(c *cli.Context) error {
 	// Encode to JSON
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(set); err != nil {
-		fmt.Fprintf(c.App.ErrWriter, "Couldn't encode the environment variables into JSON: %v", err)
+		fmt.Fprintf(c.App.ErrWriter, "Couldn't encode the environment variables into JSON: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Create the request
 	req, err := http.NewRequestWithContext(context.Background(), "PATCH", "/api/current-job/v0/set", &buf)
 	if err != nil {
-		fmt.Fprintf(c.App.ErrWriter, "Couldn't create a request: %v", err)
+		fmt.Fprintf(c.App.ErrWriter, "Couldn't create a request: %v\n", err)
 		os.Exit(1)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -127,7 +127,7 @@ func envSetAction(c *cli.Context) error {
 	// Send the request
 	resp, err := cli.Do(req)
 	if err != nil {
-		fmt.Fprintf(c.App.ErrWriter, "Couldn't perform the request: %v", err)
+		fmt.Fprintf(c.App.ErrWriter, "Couldn't perform the request: %v\n", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
@@ -138,6 +138,8 @@ func envSetAction(c *cli.Context) error {
 		io.Copy(c.App.ErrWriter, resp.Body)
 		os.Exit(1)
 	}
+
+	io.Copy(c.App.Writer, resp.Body)
 
 	return nil
 }
