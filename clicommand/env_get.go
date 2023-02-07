@@ -1,10 +1,16 @@
 package clicommand
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/buildkite/agent/v3/bootstrap"
+	"github.com/buildkite/agent/v3/env"
 	"github.com/urfave/cli"
 )
 
@@ -49,14 +55,71 @@ var EnvGetCommand = cli.Command{
 			Value:  "plain",
 		},
 	},
-	Action: func(c *cli.Context) error {
-		// TODO: implement
-		_, _, err := bootstrap.ConnectToSocket()
-		if err != nil {
-			fmt.Fprintf(c.App.ErrWriter, "Could not connect to control socket: %v\nThis command can only be used from hooks or plugins running under the job runner.\n", err)
+	Action: envGetAction,
+}
+
+func envGetAction(c *cli.Context) error {
+	cli, err := bootstrap.NewSocketClient()
+	if err != nil {
+		fmt.Fprintf(c.App.ErrWriter, "Could not create socket client: %v\nThis command can only be used from hooks or plugins running under the job runner.\n", err)
+		os.Exit(1)
+	}
+
+	req, err := http.NewRequestWithContext(context.Background(), "GET", "/api/current-job/v0/env", nil)
+	if err != nil {
+		fmt.Fprintf(c.App.ErrWriter, "Couldn't create a request: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Send the request
+	resp, err := cli.Do(req)
+	if err != nil {
+		fmt.Fprintf(c.App.ErrWriter, "Couldn't perform the request: %v\n", err)
+		os.Exit(1)
+	}
+	defer resp.Body.Close()
+
+	// Check the response
+	if resp.StatusCode != 200 {
+		fmt.Fprintln(c.App.ErrWriter, "The request failed:")
+		io.Copy(c.App.ErrWriter, resp.Body)
+		os.Exit(1)
+	}
+
+	switch c.String("format") {
+	case "json":
+		// If it's json, output it directly.
+		if _, err := io.Copy(c.App.Writer, resp.Body); err != nil {
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't read the response body: %v\n", err)
 			os.Exit(1)
 		}
 
-		return nil
-	},
+	case "json-pretty":
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't read the response body: %v\n", err)
+			os.Exit(1)
+		}
+		var buf bytes.Buffer
+		if err := json.Indent(&buf, b, "", "  "); err != nil {
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't indent the output: %v\n", err)
+			os.Exit(1)
+		}
+		if _, err := io.Copy(c.App.Writer, &buf); err != nil {
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't read the response body: %v\n", err)
+			os.Exit(1)
+		}
+
+	case "plain":
+		var vars env.Environment
+		if err := json.NewDecoder(resp.Body).Decode(&vars); err != nil {
+			fmt.Fprintf(c.App.ErrWriter, "Couldn't decode the response body: %v\n", err)
+			os.Exit(1)
+		}
+		for _, v := range vars.ToSlice() {
+			fmt.Println(v)
+		}
+	}
+
+	return nil
 }

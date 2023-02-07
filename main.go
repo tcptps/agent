@@ -86,7 +86,10 @@ func main() {
 			Name:  "env",
 			Usage: "Process environment subcommands",
 			Subcommands: []cli.Command{
+				clicommand.EnvDeleteCommand,
 				clicommand.EnvDumpCommand,
+				clicommand.EnvGetCommand,
+				clicommand.EnvSetCommand,
 			},
 		},
 		{

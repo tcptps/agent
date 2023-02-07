@@ -58,9 +58,9 @@ var EnvSetCommand = cli.Command{
 }
 
 func envSetAction(c *cli.Context) error {
-	cli, token, err := bootstrap.ConnectToSocket()
+	cli, err := bootstrap.NewSocketClient()
 	if err != nil {
-		fmt.Fprintf(c.App.ErrWriter, "Could not connect to control socket: %v\nThis command can only be used from hooks or plugins running under the job runner.\n", err)
+		fmt.Fprintf(c.App.ErrWriter, "Could not create socket client: %v\nThis command can only be used from hooks or plugins running under the job runner.\n", err)
 		os.Exit(1)
 	}
 
@@ -117,12 +117,11 @@ func envSetAction(c *cli.Context) error {
 	}
 
 	// Create the request
-	req, err := http.NewRequestWithContext(context.Background(), "PATCH", "/api/current-job/v0/set", &buf)
+	req, err := http.NewRequestWithContext(context.Background(), "PATCH", "/api/current-job/v0/env", &buf)
 	if err != nil {
 		fmt.Fprintf(c.App.ErrWriter, "Couldn't create a request: %v\n", err)
 		os.Exit(1)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
 
 	// Send the request
 	resp, err := cli.Do(req)
@@ -134,11 +133,12 @@ func envSetAction(c *cli.Context) error {
 
 	// Check the response
 	if resp.StatusCode != 200 {
-		fmt.Fprintf(c.App.ErrWriter, "The request failed:\n")
+		fmt.Fprintln(c.App.ErrWriter, "The request failed:")
 		io.Copy(c.App.ErrWriter, resp.Body)
 		os.Exit(1)
 	}
 
+	// TODO: inspect the response for success
 	io.Copy(c.App.Writer, resp.Body)
 
 	return nil
