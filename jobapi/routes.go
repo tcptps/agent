@@ -1,10 +1,14 @@
 package jobapi
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/buildkite/agent/v3/agent"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/exp/maps"
 )
 
 var protectedEnv map[string]struct{}
@@ -35,22 +39,96 @@ func (s *Server) router() chi.Router {
 }
 
 func (s *Server) getEnv() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// STUB
+	return func(w http.ResponseWriter, _ *http.Request) {
+		normalizedEnv := s.environ.Dump()
+		resp := EnvGetResponse{Env: normalizedEnv}
 		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
 	}
 }
 
 func (s *Server) patchEnv() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// STUB
+		var req EnvUpdateRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		defer r.Body.Close()
+		if err != nil {
+			err = fmt.Errorf("failed to decode request body: %w", err)
+			returnError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		added := make([]string, len(req.Env))
+		updated := make([]string, len(req.Env))
+		protected := checkProtected(maps.Keys(req.Env))
+
+		if len(protected) > 0 {
+			err = fmt.Errorf("the following environment variables are protected, and cannot be modified: % v", protected)
+			returnError(w, err, http.StatusUnprocessableEntity)
+			return
+		}
+
+		for k, v := range req.Env {
+			if _, ok := s.environ.Get(k); ok {
+				updated = append(updated, k)
+			} else {
+				added = append(added, k)
+			}
+			s.environ.Set(k, v)
+		}
+
+		resp := EnvUpdateResponse{
+			Added:   added,
+			Updated: updated,
+		}
+
+		json.NewEncoder(w).Encode(resp)
 		w.WriteHeader(http.StatusOK)
 	}
 }
 
 func (s *Server) deleteEnv() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// STUB
+		var req EnvDeleteRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		defer r.Body.Close()
+		if err != nil {
+			err = fmt.Errorf("failed to decode request body: %w", err)
+			returnError(w, err, http.StatusBadRequest)
+			return
+		}
+
+		protected := checkProtected(req.Keys)
+		if len(protected) > 0 {
+			err = fmt.Errorf("the following environment variables are protected, and cannot be modified: % v", protected)
+			returnError(w, err, http.StatusUnprocessableEntity)
+			return
+		}
+
+		deleted := make([]string, 0, len(req.Keys))
+		for _, k := range req.Keys {
+			if _, ok := s.environ.Get(k); ok {
+				deleted = append(deleted, k)
+				delete(*s.environ, k)
+			}
+		}
+
+		json.NewEncoder(w).Encode(EnvDeleteResponse{Deleted: deleted})
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func checkProtected(candidates []string) []string {
+	protected := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		if _, ok := protectedEnv[c]; ok {
+			protected = append(protected, c)
+		}
+	}
+	return protected
+}
+
+func returnError(w http.ResponseWriter, err error, code int) {
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
 }

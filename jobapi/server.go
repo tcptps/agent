@@ -8,15 +8,19 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/buildkite/agent/v3/env"
 )
 
 type Server struct {
 	SocketPath string
+	environ    *env.Environment
 	token      string
 	httpSvr    *http.Server
+	started    bool
 }
 
-func NewServer(socketPath string) (server *Server, token string, err error) {
+func NewServer(socketPath string, environ *env.Environment) (server *Server, token string, err error) {
 	exists, err := socketExists(socketPath)
 	if err != nil {
 		return nil, "", err
@@ -36,11 +40,16 @@ func NewServer(socketPath string) (server *Server, token string, err error) {
 
 	return &Server{
 		SocketPath: socketPath,
+		environ:    environ,
 		token:      token,
 	}, token, nil
 }
 
 func (s *Server) Start() error {
+	if s.started {
+		return errors.New("server already started")
+	}
+
 	r := s.router()
 	l, err := net.Listen("unix", s.SocketPath)
 	if err != nil {
@@ -51,11 +60,16 @@ func (s *Server) Start() error {
 	go func() {
 		_ = s.httpSvr.Serve(l)
 	}()
+	s.started = true
 
 	return nil
 }
 
 func (s *Server) Stop() error {
+	if !s.started {
+		return errors.New("server not started")
+	}
+
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 	defer serverStopCtx()
 
