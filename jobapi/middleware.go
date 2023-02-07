@@ -1,7 +1,7 @@
 package jobapi
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 )
@@ -11,31 +11,25 @@ func AuthMdlw(token string) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer next.ServeHTTP(w, r)
 
-			enc := json.NewEncoder(w)
-
 			auth := r.Header.Get("Authorization")
 			if auth == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				enc.Encode(ErrorResponse{Error: "authorization header is required"})
+				writeError(w, errors.New("authorization header is required"), http.StatusUnauthorized)
 				return
 			}
 
 			authType, reqToken, found := strings.Cut(auth, " ")
 			if !found {
-				w.WriteHeader(http.StatusUnauthorized)
-				enc.Encode(ErrorResponse{Error: "invalid authorization header: must be in the form `Bearer <token>`"})
+				writeError(w, errors.New("invalid authorization header: must be in the form `Bearer <token>`"), http.StatusUnauthorized)
 				return
 			}
 
 			if authType != "Bearer" {
-				w.WriteHeader(http.StatusUnauthorized)
-				enc.Encode(ErrorResponse{Error: "invalid authorization header: type must be Bearer"})
+				writeError(w, errors.New("invalid authorization header: type must be Bearer"), http.StatusUnauthorized)
 				return
 			}
 
 			if reqToken != token {
-				w.WriteHeader(http.StatusUnauthorized)
-				enc.Encode(ErrorResponse{Error: "invalid authorization token"})
+				writeError(w, errors.New("invalid authorization token"), http.StatusUnauthorized)
 				return
 			}
 		})
