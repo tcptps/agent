@@ -36,6 +36,7 @@ require (
 	github.com/brunoscheufler/aws-ecs-metadata-go v0.0.0-20220812150832-b6b31c6eeeaf
 	github.com/buildkite/roko v1.0.3-0.20221121010703-599521c80157
 	github.com/gliderlabs/ssh v0.3.5
+	github.com/go-chi/chi/v5 v5.0.8
 	github.com/google/go-cmp v0.5.9
 	go.opentelemetry.io/contrib/propagators/aws v1.12.0
 	go.opentelemetry.io/contrib/propagators/b3 v1.12.0
