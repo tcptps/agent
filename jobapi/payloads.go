@@ -4,12 +4,13 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-type EnvPayload struct {
-	Env map[string]string `json:"env"`
+type EnvUpdateRequest struct {
+	Env map[string]*string `json:"env"`
 }
 
-type EnvUpdateRequest EnvPayload
-type EnvGetResponse EnvPayload
+type EnvGetResponse struct {
+	Env map[string]string `json:"env"` // Different to EnvUpdateRequest because we don't want to send nulls
+}
 
 type EnvUpdateResponse struct {
 	Added   []string `json:"added"`

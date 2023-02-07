@@ -68,13 +68,27 @@ func (s *Server) patchEnv() http.HandlerFunc {
 			return
 		}
 
+		nils := make([]string, 0, len(req.Env))
+
+		for k, v := range req.Env {
+			if v == nil {
+				nils = append(nils, k)
+			}
+		}
+
+		if len(nils) > 0 {
+			err = fmt.Errorf("removing environment variables (ie setting them to null) is not permitted on this endpiont. The following keys were set to null: % v", nils)
+			returnError(w, err, http.StatusUnprocessableEntity)
+			return
+		}
+
 		for k, v := range req.Env {
 			if _, ok := s.environ.Get(k); ok {
 				updated = append(updated, k)
 			} else {
 				added = append(added, k)
 			}
-			s.environ.Set(k, v)
+			s.environ.Set(k, *v)
 		}
 
 		resp := EnvUpdateResponse{
