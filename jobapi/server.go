@@ -16,13 +16,13 @@ import (
 
 type Server struct {
 	SocketPath string
-	environ    *env.Environment
+	environ    env.Environment
 	token      string
 	httpSvr    *http.Server
 	started    bool
 }
 
-func NewServer(socketPath string, environ *env.Environment) (server *Server, token string, err error) {
+func NewServer(socketPath string, environ env.Environment) (server *Server, token string, err error) {
 	exists, err := socketExists(socketPath)
 	if err != nil {
 		return nil, "", err

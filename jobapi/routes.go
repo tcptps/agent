@@ -114,7 +114,7 @@ func (s *Server) deleteEnv() http.HandlerFunc {
 		for _, k := range req.Keys {
 			if _, ok := s.environ.Get(k); ok {
 				deleted = append(deleted, k)
-				delete(*s.environ, k)
+				delete(s.environ, k)
 			}
 		}
 
