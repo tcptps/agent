@@ -33,7 +33,7 @@ EOF
 addfile() {
     printf "\n\n---\n\n## %s\n\n\`\`\`\n" "${2:-${1#${TEMPDIR}/}}" >> "${TEMPFILE}"
     cat "$1" >> "${TEMPFILE}"
-    echo "\`\`\`" >> "${TEMPFILE}"
+    printf "\n\`\`\`\n" >> "${TEMPFILE}"
 }
 
 ## The Go standard library also counts.
