@@ -2,6 +2,8 @@ package jobapi
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -33,10 +35,7 @@ func NewServer(socketPath string, environ *env.Environment) (server *Server, tok
 		}
 	}
 
-	token, err = generateToken(32)
-	if err != nil {
-		return nil, "", fmt.Errorf("generating token: %w", err)
-	}
+	token = generateToken(32)
 
 	return &Server{
 		SocketPath: socketPath,
@@ -105,4 +104,10 @@ func socketExists(path string) (bool, error) {
 	}
 
 	return false, fmt.Errorf("checking if socket exists: %w", err)
+}
+
+func generateToken(minBits int) string {
+	b := make([]byte, (minBits+7)/8)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
 }
