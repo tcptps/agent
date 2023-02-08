@@ -117,7 +117,7 @@ func envSetAction(c *cli.Context) error {
 	}
 
 	// Create the request
-	req, err := http.NewRequestWithContext(context.Background(), "PATCH", "/api/current-job/v0/env", &buf)
+	req, err := http.NewRequestWithContext(context.Background(), "PATCH", "http://bootstrap/api/current-job/v0/env", &buf)
 	if err != nil {
 		fmt.Fprintf(c.App.ErrWriter, "Couldn't create a request: %v\n", err)
 		os.Exit(1)

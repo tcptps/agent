@@ -1,0 +1,6 @@
+#!/bin/bash
+
+python3 <<EOF
+import subprocess
+subprocess.run(["buildkite-agent", "env", "set", "LLAMAS=42"]) 
+EOF

@@ -6,10 +6,14 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -53,6 +57,8 @@ type Bootstrap struct {
 
 	// A channel to track cancellation
 	cancelCh chan struct{}
+
+	socketPath, socketToken string
 }
 
 // New returns a new Bootstrap instance
@@ -79,7 +85,66 @@ func (b *Bootstrap) Run(ctx context.Context) (exitCode int) {
 		b.shell.InterruptSignal = b.Config.CancelSignal
 	}
 
-	var err error
+	// BEGIN SOCKET DEMO TIME FUN CODEZ
+	b.socketPath = fmt.Sprintf("/var/run/buildkite-agent/bootstrap-%d.sock", os.Getpid())
+	token, err := func() (string, error) {
+		b := make([]byte, 16)
+		if _, err := rand.Read(b); err != nil {
+			return "", err
+		}
+		return base64.URLEncoding.EncodeToString(b), nil
+	}()
+	if err != nil {
+		fmt.Printf("Couldn't create socket token: %v", err)
+		return 1
+	}
+	b.socketToken = token
+	b.shell.Env.Set("BUILDKITE_AGENT_BOOTSTRAP_SOCK_TOKEN", b.socketToken)
+
+	// Hey! Listen!
+	ln, err := net.Listen("unix", b.socketPath)
+	if err != nil {
+		fmt.Printf("Couldn't listen on unix socket: %v", err)
+		return 1
+	}
+	defer ln.Close()
+	go http.Serve(ln, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			e, err := b.shell.Env.MarshalJSON()
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(e)
+
+		case http.MethodPatch:
+			if r.Header.Get("Authorization") != "Bearer "+b.socketToken {
+				http.Error(w, "invalid token", http.StatusUnauthorized)
+				return
+			}
+
+			dec := json.NewDecoder(r.Body)
+			var e map[string]string
+			if err := dec.Decode(&e); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			for k := range e {
+				if strings.HasPrefix(k, "BUILDKITE") {
+					http.Error(w, "cannot mutate "+k, http.StatusBadRequest)
+				}
+			}
+			for k, v := range e {
+				b.shell.Env.Set(k, v)
+			}
+			w.Write([]byte("ok\n"))
+
+		default:
+			http.Error(w, "unimplemented method", http.StatusBadRequest)
+		}
+	}))
+	// END SOCKET DEMO FUN TIME CODEZ
 
 	span, ctx, stopper := b.startTracing(ctx)
 	defer stopper()
@@ -552,6 +617,12 @@ func (b *Bootstrap) setUp(ctx context.Context) error {
 
 	// Disable any interactive Git/SSH prompting
 	b.shell.Env.Set("GIT_TERMINAL_PROMPT", "0")
+
+	// BEGIN SOCKET DEMO TIME FUN CODEZ
+	// Set the socket and token vars
+	b.shell.Env.Set("BUILDKITE_AGENT_BOOTSTRAP_SOCK", b.socketPath)
+	b.shell.Env.Set("BUILDKITE_AGENT_BOOTSTRAP_SOCK_TOKEN", b.socketToken)
+	// END SOCKET DEMO FUN TIME CODEZ
 
 	// It's important to do this before checking out plugins, in case you want
 	// to use the global environment hook to whitelist the plugins that are
