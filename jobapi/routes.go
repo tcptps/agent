@@ -11,13 +11,14 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+// router returns a chi router with the jobapi routes and appropriate middlewares mounted
 func (s *Server) router() chi.Router {
 	r := chi.NewRouter()
 	r.Use(
 		middleware.Recoverer,
 		// middleware.Logger, // REVIEW: Should we log requests to this API? If so, where should we log them to? The job logs?
-		HeadersMdlw(),
-		AuthMdlw(s.token),
+		HeadersMiddleware(),
+		AuthMiddleware(s.token),
 	)
 
 	r.Route("/api/current-job/v0", func(r chi.Router) {

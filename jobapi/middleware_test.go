@@ -62,7 +62,7 @@ func TestAuthMdlw(t *testing.T) {
 
 			w := httptest.NewRecorder()
 
-			mdlw := jobapi.AuthMdlw(token)
+			mdlw := jobapi.AuthMiddleware(token)
 			wrapped := mdlw(http.HandlerFunc(testHandler))
 			wrapped.ServeHTTP(w, req)
 
@@ -86,7 +86,7 @@ func TestAuthMdlw(t *testing.T) {
 func TestHeadersMdlw(t *testing.T) {
 	t.Parallel()
 
-	mdlw := jobapi.HeadersMdlw()
+	mdlw := jobapi.HeadersMiddleware()
 	req := httptest.NewRequest("GET", "/", nil)
 	w := httptest.NewRecorder()
 

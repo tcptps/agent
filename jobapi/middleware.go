@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
-func AuthMdlw(token string) func(http.Handler) http.Handler {
+// AuthMiddleware is a middleware that checks the Authorization header of an incoming request for a Bearer token
+// and checks that that token is the correct one.
+func AuthMiddleware(token string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer next.ServeHTTP(w, r)
@@ -36,7 +38,9 @@ func AuthMdlw(token string) func(http.Handler) http.Handler {
 	}
 }
 
-func HeadersMdlw() func(http.Handler) http.Handler {
+// HeadersMiddleware is a middleware that sets the common headers for all responses. At the moment, this is just
+// Content-Type: application/json.
+func HeadersMiddleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer next.ServeHTTP(w, r)
