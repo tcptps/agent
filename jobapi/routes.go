@@ -11,15 +11,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-var protectedEnv map[string]struct{}
-
-func init() {
-	protectedEnv = make(map[string]struct{}, len(agent.ProtectedEnv))
-	for _, p := range agent.ProtectedEnv {
-		protectedEnv[p] = struct{}{}
-	}
-}
-
 func (s *Server) router() chi.Router {
 	r := chi.NewRouter()
 	r.Use(
@@ -135,7 +126,7 @@ func (s *Server) deleteEnv() http.HandlerFunc {
 func checkProtected(candidates []string) []string {
 	protected := make([]string, 0, len(candidates))
 	for _, c := range candidates {
-		if _, ok := protectedEnv[c]; ok {
+		if _, ok := agent.ProtectedEnv[c]; ok {
 			protected = append(protected, c)
 		}
 	}
