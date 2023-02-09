@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,10 +19,7 @@ const (
 	defaultSleepAfterUploadDuration = time.Second
 )
 
-var (
-	locationRegex = regexp.MustCompile(`jobs/(?P<jobID>[^/]+)/pipelines/(?P<uploadUUID>[^/]+)`)
-	ErrRegex      = func(s string, r *regexp.Regexp) error { return fmt.Errorf("regex %s failed to match %s", r, s) }
-)
+var locationRegex = regexp.MustCompile(`jobs/(?P<jobID>[^/]+)/pipelines/(?P<uploadUUID>[^/]+)`)
 
 type PipelineUploader struct {
 	Client         APIClient
@@ -219,12 +215,20 @@ func (u *PipelineUploader) pollForPiplineUploadStatus(ctx context.Context, l log
 	})
 }
 
+type ErrLocationParse struct {
+	location string
+}
+
+func (e *ErrLocationParse) Error() string {
+	return fmt.Sprintf("could not extract job and upload UUIDs from Location %s", e.location)
+}
+
 func extractJobIdUUID(location string) (string, string, error) {
 	matches := locationRegex.FindStringSubmatch(location)
 	jobIDIndex := locationRegex.SubexpIndex("jobID")
 	uuidIndex := locationRegex.SubexpIndex("uploadUUID")
 	if jobIDIndex < 0 || jobIDIndex >= len(matches) || uuidIndex < 0 || uuidIndex >= len(matches) {
-		return "", "", ErrRegex(location, locationRegex)
+		return "", "", &ErrLocationParse{location: location}
 	}
 	return matches[jobIDIndex], matches[uuidIndex], nil
 }
