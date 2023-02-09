@@ -11,8 +11,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +24,7 @@ import (
 	"github.com/buildkite/agent/v3/env"
 	"github.com/buildkite/agent/v3/experiments"
 	"github.com/buildkite/agent/v3/hook"
+	"github.com/buildkite/agent/v3/jobapi"
 	"github.com/buildkite/agent/v3/process"
 	"github.com/buildkite/agent/v3/redaction"
 	"github.com/buildkite/agent/v3/tracetools"
@@ -84,6 +87,42 @@ func (b *Bootstrap) Run(ctx context.Context) (exitCode int) {
 	span, ctx, stopper := b.startTracing(ctx)
 	defer stopper()
 	defer func() { span.FinishWithError(err) }()
+
+	if experiments.IsEnabled("job-api") {
+		if runtime.GOOS == "windows" {
+			b.shell.Errorf("The job API is not currently supported on Windows. It's on its way though, promise!")
+			return 1
+		}
+
+		jobAPISocketPath := path.Join(os.TempDir(), fmt.Sprintf("buildkite-agent-%d.sock", os.Getpid()))
+		srv, token, err := jobapi.NewServer(jobAPISocketPath, b.shell.Env)
+		if err != nil {
+			b.shell.Errorf("Error creating job API server: %v", err)
+			return 1
+		}
+
+		b.shell.Env.Set("BUILDKITE_AGENT_JOB_API_SOCKET", jobAPISocketPath)
+		b.shell.Env.Set("BUILDKITE_AGENT_JOB_API_TOKEN", token)
+
+		err = srv.Start()
+		if err != nil {
+			b.shell.Errorf("Error starting Job API server: %v", err)
+			return 1
+		}
+
+		b.shell.Commentf("Job API server started at %s", jobAPISocketPath)
+		b.shell.Commentf("Token: %s", token)
+
+		defer func() {
+			err = srv.Stop()
+			if err != nil {
+				b.shell.Errorf("Error stopping Job API server: %v", err)
+			} else {
+				b.shell.Commentf("Stopped Job API server")
+			}
+
+		}()
+	}
 
 	// Listen for cancellation
 	go func() {
