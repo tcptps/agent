@@ -42,18 +42,20 @@ func (s *Server) patchEnv(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	defer r.Body.Close()
 	if err != nil {
-		err = fmt.Errorf("failed to decode request body: %w", err)
-		writeError(w, err, http.StatusBadRequest)
+		writeError(w, fmt.Errorf("failed to decode request body: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	added := make([]string, len(req.Env))
-	updated := make([]string, len(req.Env))
+	added := make([]string, 0, len(req.Env))
+	updated := make([]string, 0, len(req.Env))
 	protected := checkProtected(maps.Keys(req.Env))
 
 	if len(protected) > 0 {
-		err = fmt.Errorf("the following environment variables are protected, and cannot be modified: % v", protected)
-		writeError(w, err, http.StatusUnprocessableEntity)
+		writeError(
+			w,
+			fmt.Sprintf("the following environment variables are protected, and cannot be modified: % v", protected),
+			http.StatusUnprocessableEntity,
+		)
 		return
 	}
 
@@ -66,8 +68,11 @@ func (s *Server) patchEnv(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(nils) > 0 {
-		err = fmt.Errorf("removing environment variables (ie setting them to null) is not permitted on this endpiont. The following keys were set to null: % v", nils)
-		writeError(w, err, http.StatusUnprocessableEntity)
+		writeError(
+			w,
+			fmt.Sprintf("removing environment variables (ie setting them to null) is not permitted on this endpoint. The following keys were set to null: % v", nils),
+			http.StatusUnprocessableEntity,
+		)
 		return
 	}
 
@@ -101,8 +106,11 @@ func (s *Server) deleteEnv(w http.ResponseWriter, r *http.Request) {
 
 	protected := checkProtected(req.Keys)
 	if len(protected) > 0 {
-		err = fmt.Errorf("the following environment variables are protected, and cannot be modified: % v", protected)
-		writeError(w, err, http.StatusUnprocessableEntity)
+		writeError(
+			w,
+			fmt.Sprintf("the following environment variables are protected, and cannot be modified: % v", protected),
+			http.StatusUnprocessableEntity,
+		)
 		return
 	}
 
@@ -128,7 +136,7 @@ func checkProtected(candidates []string) []string {
 	return protected
 }
 
-func writeError(w http.ResponseWriter, err error, code int) {
+func writeError(w http.ResponseWriter, err any, code int) {
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()})
+	json.NewEncoder(w).Encode(ErrorResponse{Error: fmt.Sprint(err)})
 }

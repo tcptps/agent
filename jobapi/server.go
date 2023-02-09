@@ -40,7 +40,10 @@ func NewServer(socketPath string, environ env.Environment) (server *Server, toke
 		}
 	}
 
-	token = generateToken(32)
+	token, err = generateToken(32)
+	if err != nil {
+		return nil, "", fmt.Errorf("generating token: %w", err)
+	}
 
 	return &Server{
 		SocketPath: socketPath,
@@ -98,6 +101,11 @@ func (s *Server) Stop() error {
 		return fmt.Errorf("shutting down Job API server: %w", err)
 	}
 
+	err = os.Remove(s.SocketPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("removing socket: %w", err)
+	}
+
 	return nil
 }
 
@@ -114,8 +122,12 @@ func socketExists(path string) (bool, error) {
 	return false, fmt.Errorf("checking if socket exists: %w", err)
 }
 
-func generateToken(minBits int) string {
-	b := make([]byte, (minBits+7)/8)
-	rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+func generateToken(len int) (string, error) {
+	b := make([]byte, len)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("reading from random: %w", err)
+	}
+
+	return base64.URLEncoding.EncodeToString(b), nil
 }
