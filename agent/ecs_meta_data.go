@@ -24,9 +24,11 @@ func (e ECSMetadata) Get() (map[string]string, error) {
 		metaData["ecs:image"] = m.Image
 		metaData["ecs:task-arn"] = m.Labels.EcsTaskArn
 	case *metadata.ContainerMetadataV4:
+		metaData["ecs:launch-type"] = m.LaunchType
 		metaData["ecs:container-name"] = m.DockerName
 		metaData["ecs:image"] = m.Image
 		metaData["ecs:task-arn"] = m.Labels.EcsTaskArn
+		metaData["ecs:availability-zone"] = m.AvailabilityZone
 	default:
 		return metaData, fmt.Errorf("ecs metadata returned unknown type %T", m)
 	}
