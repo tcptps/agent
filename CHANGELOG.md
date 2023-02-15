@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [v3.44.0](https://github.com/buildkite/agent/tree/v3.44.0) (2023-02-15)
+[Full Changelog](https://github.com/buildkite/agent/compare/v3.43.1...v3.44.0)
+
+### Fixed
+- Restore old tini path on Ubuntu 20.04 [#1934](https://github.com/buildkite/agent/pull/1934) (@triarius)
+- When the `ansi-timestamps` experiment is enabled, timestamps are now computed at the end of each line [#1940](https://github.com/buildkite/agent/pull/1940) (@DrJosh9000)
+
+### Added
+- New flag (`git-checkout-flags`) and environment variable (`BUILDKITE_GIT_CHECKOUT_FLAGS`) for passing extra flags to `git checkout` [#1891](https://github.com/buildkite/agent/pull/1891) (@jmelahman)
+
+### Changed
+- Upstart is no longer supported [#1946](https://github.com/buildkite/agent/pull/1946) (@sj26)
+- Better errors when config loading fails [#1937](https://github.com/buildkite/agent/pull/1937) (@moskyb)
+- Pipelines are now parsed with gopkg.in/yaml.v3. This change should be invisible, but involved a non-trivial amount of new code. [#1930](https://github.com/buildkite/agent/pull/1930) (@DrJosh9000)
+- Many dependency updates, notably Go v1.20.1 [#1955](https://github.com/buildkite/agent/pull/1955).
+- Several minor improvements and clean-ups (@sj26, @triarius, @jonahbull, @DrJosh9000)
+
 ## [3.43.1](https://github.com/buildkite/agent/tree/3.43.1) (2023-01-20)
 [Full Changelog](https://github.com/buildkite/agent/compare/v3.43.0...3.43.1)
 
