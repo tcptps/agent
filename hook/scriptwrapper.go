@@ -3,6 +3,7 @@ package hook
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,7 +79,7 @@ func (e *HookExitError) Error() string {
 
 type scriptWrapperOpt func(*ScriptWrapper)
 
-// Hooks get "sourced" into the bootstrap in the sense that they get the
+// Hooks get "sourced" into job execution in the sense that they get the
 // environment set for them and then we capture any extra environment variables
 // that are exported in the script.
 
@@ -86,7 +87,7 @@ type scriptWrapperOpt func(*ScriptWrapper)
 // before it finishes, so we've got an awesome (ugly) hack to get around this.
 // We write the ENV to file, run the hook and then write the ENV back to another file.
 // Then we can use the diff of the two to figure out what changes to make to the
-// bootstrap. Horrible, but effective.
+// job executor. Horrible, but effective.
 
 // ScriptWrapper wraps a hook script with env collection and then provides
 // a way to get the difference between the environment before the hook is run and
@@ -123,14 +124,14 @@ func NewScriptWrapper(opts ...scriptWrapperOpt) (*ScriptWrapper, error) {
 	}
 
 	if wrap.hookPath == "" {
-		return nil, fmt.Errorf("Hook path was not provided")
+		return nil, errors.New("hook path was not provided")
 	}
 
 	var err error
 	var isBashHook bool
 	var isPwshHook bool
 
-	scriptFileName := "buildkite-agent-bootstrap-hook-runner"
+	scriptFileName := "buildkite-agent-job-exec-hook-runner"
 	isWindows := wrap.os == "windows"
 
 	// we use bash hooks for scripts with no extension, otherwise on windows
@@ -153,7 +154,7 @@ func NewScriptWrapper(opts ...scriptWrapperOpt) (*ScriptWrapper, error) {
 
 	// We'll pump the ENV before the hook into this temp file
 	wrap.beforeEnvFile, err = shell.TempFileWithExtension(
-		"buildkite-agent-bootstrap-hook-env-before",
+		"buildkite-agent-job-exec-hook-env-before",
 	)
 	if err != nil {
 		return nil, err
@@ -162,7 +163,7 @@ func NewScriptWrapper(opts ...scriptWrapperOpt) (*ScriptWrapper, error) {
 
 	// We'll then pump the ENV _after_ the hook into this temp file
 	wrap.afterEnvFile, err = shell.TempFileWithExtension(
-		"buildkite-agent-bootstrap-hook-env-after",
+		"buildkite-agent-job-exec-hook-env-after",
 	)
 	if err != nil {
 		return nil, err

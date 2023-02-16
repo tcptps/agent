@@ -24,7 +24,7 @@ import (
 
 const (
 	// BuildkiteMessageMax is the maximum length of "BUILDKITE_MESSAGE=...\0"
-	// environment entry passed to bootstrap, beyond which it will be truncated
+	// environment entry passed to job executor, beyond which it will be truncated
 	// to avoid exceeding the system limit. Note that it includes the variable
 	// name, equals sign, and null terminator.
 	//
@@ -151,11 +151,11 @@ func NewJobRunner(l logger.Logger, scope *metrics.Scope, ag *api.AgentRegisterRe
 		return nil, err
 	}
 
-	// The bootstrap-script gets parsed based on the operating system
-	cmd, err := shellwords.Split(conf.AgentConfiguration.BootstrapScript)
+	// The job executor script gets parsed based on the operating system
+	cmd, err := shellwords.Split(conf.AgentConfiguration.JobExecutorScript)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to split bootstrap-script (%q) into tokens: %v",
-			conf.AgentConfiguration.BootstrapScript, err)
+		return nil, fmt.Errorf("Failed to split job executor script (%q) into tokens: %v",
+			conf.AgentConfiguration.JobExecutorScript, err)
 	}
 
 	// Our log streamer works off a buffer of output
@@ -237,7 +237,7 @@ func NewJobRunner(l logger.Logger, scope *metrics.Scope, ag *api.AgentRegisterRe
 	// take precedence over the agent
 	processEnv := append(os.Environ(), env...)
 
-	// The process that will run the bootstrap script
+	// The process that will run the job executor script
 	runner.process = process.New(l, process.Config{
 		Path:            cmd[0],
 		Args:            cmd[1:],
